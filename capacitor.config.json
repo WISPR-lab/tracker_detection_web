@@ -1,0 +1,8 @@
+{
+  "appId": "io.dhdj.trackers",
+  "appName": "Trackers",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}
