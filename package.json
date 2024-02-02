@@ -16,6 +16,7 @@
     "lodash": "^4.17.21",
     "roboto-fontface": "*",
     "vue": "^3.3.0",
+    "vue-json-pretty": "^2.3.0",
     "vuetify": "^3.0.0",
     "yarn": "^1.22.21"
   },
