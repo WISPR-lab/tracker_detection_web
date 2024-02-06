@@ -75,6 +75,17 @@ function buf2hex(buffer) {
     .join('');
 }
 
+function addItem(item){
+  const foundItem = _.find(items.value, {id: item.id});
+
+
+  if (foundItem === undefined) {
+    items.value.push(item)
+  } else {
+    Object.assign(foundItem, item);
+  }
+}
+
 
 async function scan() {
   try {
@@ -97,6 +108,36 @@ async function scan() {
             //console.log(key)
           })
         }
+        if (!_.isEmpty(result.manufacturerData)) {
+          _.forEach(result.manufacturerData, (valueDataView, key) => {
+            if (Number(key) === 0x4c) {
+              let item;
+              if (valueDataView.getInt8(0) == 0x12 && valueDataView.getInt8(1) == 0x19){
+                item = {
+                  name: 'Airtag',
+                  icon: "/src/assets/airtag.png",
+                  link: "https://www.apple.com/airtag/",
+                  id: buf2hex(valueDataView.buffer), // TODO: this is ghetto! fix it!
+                  packet: {},
+                  percentage: (1 - Math.abs(result.rssi / result.txPower)) * 100
+                };
+
+                addItem(item);
+              }else{
+                // item = {
+                //   name: 'Apple Device',
+                //   icon: "/src/assets/apple.svg",
+                //   link: "https://www.apple.com/",
+                //   id: buf2hex(valueDataView.buffer),
+                //   packet: {},
+                //   percentage: (1 - Math.abs(result.rssi / result.txPower)) * 100
+                // };
+              }
+              console.log('received new scan result', result);
+              console.log(key)
+            }
+          })
+        }
         if (_.includes(result.uuids, "0000feed-0000-1000-8000-00805f9b34fb")) {
           console.log("Detected tile device: " + result.device.deviceId, result)
           const transformedServiceData = _.mapValues(result.serviceData, (value, key) => {
@@ -110,23 +151,15 @@ async function scan() {
             packet: transformedServiceData,
             percentage: (1 - Math.abs(result.rssi / result.txPower)) * 100
           };
-          const foundItem = _.find(items.value, { id: result.device.deviceId });
-
-
-          if (foundItem == undefined){
-            console.log("adding!")
-            items.value.push(item)
-          }else{
-            Object.assign(foundItem, item);
-          }
+          addItem(item);
         }
       }
     );
 
-    setTimeout(async () => {
-      await BleClient.stopLEScan();
-      console.log('stopped scanning');
-    }, 500000);
+    // setTimeout(async () => {
+    //   await BleClient.stopLEScan();
+    //   console.log('stopped scanning');
+    // }, 500000);
   } catch (error) {
     console.error(error);
   }
