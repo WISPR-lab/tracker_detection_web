@@ -113,16 +113,18 @@ async function scan() {
             if (Number(key) === 0x4c) {
               let item;
               if (valueDataView.getInt8(0) == 0x12 && valueDataView.getInt8(1) == 0x19){
-                item = {
-                  name: 'Airtag',
-                  icon: "/src/assets/airtag.png",
-                  link: "https://www.apple.com/airtag/",
-                  id: buf2hex(valueDataView.buffer), // TODO: this is ghetto! fix it!
-                  packet: {},
-                  percentage: (1 - Math.abs(result.rssi / result.txPower)) * 100
-                };
+                if (((valueDataView.getInt8(2) & 0x30) >> 4) === 1){
+                  item = {
+                    name: 'Airtag',
+                    icon: "/src/assets/airtag.png",
+                    link: "https://www.apple.com/airtag/",
+                    id: buf2hex(valueDataView.buffer), // TODO: this is ghetto! fix it!
+                    packet: {},
+                    percentage: (1 - Math.abs(result.rssi / result.txPower)) * 100
+                  };
 
-                addItem(item);
+                  addItem(item);
+                }
               }else{
                 // item = {
                 //   name: 'Apple Device',
