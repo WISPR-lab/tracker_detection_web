@@ -118,7 +118,7 @@ async function scan() {
                     name: 'Airtag',
                     icon: "/src/assets/airtag.png",
                     link: "https://www.apple.com/airtag/",
-                    id: buf2hex(valueDataView.buffer), // TODO: this is ghetto! fix it!
+                    id: result.device.deviceId,
                     packet: {},
                     percentage: (1 - Math.abs(result.rssi / result.txPower)) * 100
                   };
