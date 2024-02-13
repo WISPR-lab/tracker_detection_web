@@ -49,7 +49,7 @@
           density="compact"
           prepend-icon="mdi-wifi-strength-3"
         >
-          <v-list-item-subtitle>{{percentage}}%</v-list-item-subtitle>
+          <v-list-item-subtitle>{{distance}}M</v-list-item-subtitle>
         </v-list-item>
       </div>
 
@@ -89,7 +89,7 @@ defineProps({
   icon: { type: String, required: true },
   id: { type: String, required: true },
   packet: { type: Object, required: true },
-  percentage: {type: Number, required: true}
+  distance: {type: String, required: true}
 })
 
 function writeClipboard(){

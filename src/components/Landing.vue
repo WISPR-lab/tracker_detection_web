@@ -75,7 +75,7 @@ function buf2hex(buffer) {
     .join('');
 }
 
-function addItem(item){
+function addItem(item) {
   const foundItem = _.find(items.value, {id: item.id});
 
 
@@ -86,6 +86,38 @@ function addItem(item){
   }
 }
 
+function getItem(id) {
+  return _.find(items.value, {id: id});
+}
+
+function getDistance(rssi, txPower) {
+  /*
+   * RSSI = TxPower - 10 * n * lg(d)
+   * n = 2 (in free space)
+   *
+   * d = 10 ^ ((TxPower - RSSI) / (10 * n))
+   */
+
+  return Math.pow(10, (txPower - rssi) / (10 * 2)).toFixed(2);
+}
+
+function base64DecodeToHexString(base64String) {
+  // Decode the base64 string into its original binary string form
+  const decodedString = atob(base64String);
+
+  // Convert each character of the decoded string into its byte value in hexadecimal, assuming 16 bytes
+  const hexValues = [];
+  for (let i = 0; i < decodedString.length; i++) {
+    const byte = decodedString.charCodeAt(i);
+    const hex = byte.toString(16).padStart(2, '0'); // Convert to hex and pad with zero if necessary
+    hexValues.push(hex);
+  }
+
+  // Format the hexadecimal values into a readable string, e.g., "0x01 0x2A 0x3F ..."
+  const readableHexString = hexValues.join(':');
+
+  return readableHexString;
+}
 
 async function scan() {
   try {
@@ -111,21 +143,33 @@ async function scan() {
         if (!_.isEmpty(result.manufacturerData)) {
           _.forEach(result.manufacturerData, (valueDataView, key) => {
             if (Number(key) === 0x4c) {
-              let item;
-              if (valueDataView.getInt8(0) == 0x12 && valueDataView.getInt8(1) == 0x19){
-                if (((valueDataView.getInt8(2) & 0x30) >> 4) === 1){
-                  item = {
-                    name: 'Airtag',
-                    icon: "/src/assets/airtag.png",
-                    link: "https://www.apple.com/airtag/",
-                    id: result.device.deviceId,
-                    packet: {},
-                    percentage: (1 - Math.abs(result.rssi / result.txPower)) * 100
-                  };
+              if (valueDataView.getInt8(0) == 0x12 && valueDataView.getInt8(1) == 0x19) {
+                if (((valueDataView.getInt8(2) & 0x30) >> 4) === 1) {
+                  let deviceId = base64DecodeToHexString(result.device.deviceId);
+                  let item = getItem(deviceId);
+                  if (item == undefined) {
+                    item = {
+                      name: 'Airtag',
+                      icon: "/src/assets/airtag.png",
+                      link: "https://www.apple.com/airtag/",
+                      id: base64DecodeToHexString(result.device.deviceId),
+                      packet: {},
+                      rssi: [result.rssi],
+                      distance: getDistance(result.rssi, -50)
+                    };
 
-                  addItem(item);
+                    addItem(item);
+                  }else{
+                    if (item.rssi.length > 10) {
+                      item.rssi.pop()
+                    }
+                    item.rssi.unshift(result.rssi);
+                    item.distance = getDistance(_.mean(item.rssi), -50)
+                    console.log(item);
+                  }
+                  console.log('airtag scan result', result);
                 }
-              }else{
+              } else {
                 // item = {
                 //   name: 'Apple Device',
                 //   icon: "/src/assets/apple.svg",
@@ -135,8 +179,6 @@ async function scan() {
                 //   percentage: (1 - Math.abs(result.rssi / result.txPower)) * 100
                 // };
               }
-              console.log('received new scan result', result);
-              console.log(key)
             }
           })
         }
@@ -145,15 +187,28 @@ async function scan() {
           const transformedServiceData = _.mapValues(result.serviceData, (value, key) => {
             return buf2hex(value.buffer); // Convert the buffer of each value to hex
           });
-          const item = {
-            name: 'Tile',
-            icon: "/src/assets/tile.jpg",
-            link: "https://www.tile.com/en-us",
-            id: result.device.deviceId,
-            packet: transformedServiceData,
-            percentage: (1 - Math.abs(result.rssi / result.txPower)) * 100
-          };
-          addItem(item);
+
+          let deviceId = base64DecodeToHexString(result.device.deviceId);
+          let item = getItem(deviceId);
+          if (item == undefined) {
+            item = {
+              name: 'Tile',
+              icon: "/src/assets/tile.jpg",
+              link: "https://www.tile.com/en-us",
+              id: base64DecodeToHexString(result.device.deviceId),
+              packet: transformedServiceData,
+              rssi:[result.rssi],
+              distance: getDistance(result.rssi, -50)
+            };
+            addItem(item);
+          }else{
+            if (item.rssi.length > 10) {
+              item.rssi.pop()
+            }
+            item.rssi.unshift(result.rssi);
+            item.distance = getDistance(_.mean(item.rssi), -50)
+            console.log(item);
+          }
         }
       }
     );
